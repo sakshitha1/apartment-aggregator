@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Button } from './Button.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
+import { useFavorites } from '../context/FavoritesContext.jsx'
 
 function Icon({ children }) {
   return (
@@ -14,6 +15,7 @@ function Icon({ children }) {
 export function Navbar() {
   const navigate = useNavigate()
   const { user, openLogin, openRegister, logout } = useAuth()
+  const { count: favCount } = useFavorites()
   const [menuOpen, setMenuOpen] = useState(false)
 
   const initials = useMemo(() => {
@@ -54,6 +56,26 @@ export function Navbar() {
         >
           List your property
         </Button>
+
+        <Link
+          to="/favorites"
+          className="relative hidden h-10 w-10 place-items-center rounded-full border border-zinc-200 bg-white shadow-sm hover:shadow md:grid"
+          aria-label="Favorites"
+        >
+          <svg viewBox="0 0 24 24" className="h-5 w-5 text-zinc-700" fill="none">
+            <path
+              d="M12 21s-7-4.6-9.5-8.6C.5 8.9 3 6 6.3 6c1.7 0 3.2.8 3.7 1.7.5-.9 2-1.7 3.7-1.7C17 6 19.5 8.9 21.5 12.4 19 16.4 12 21 12 21z"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinejoin="round"
+            />
+          </svg>
+          {favCount > 0 && (
+            <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">
+              {favCount}
+            </span>
+          )}
+        </Link>
 
         <div className="relative">
           <button
@@ -101,6 +123,17 @@ export function Navbar() {
                     }}
                   >
                     Add property
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="w-full px-4 py-3 text-left text-sm hover:bg-zinc-50"
+                    onClick={() => {
+                      setMenuOpen(false)
+                      navigate('/favorites')
+                    }}
+                  >
+                    Favorites{favCount > 0 ? ` (${favCount})` : ''}
                   </button>
                   <button
                     type="button"

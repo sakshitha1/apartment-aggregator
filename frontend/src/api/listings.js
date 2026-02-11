@@ -25,3 +25,15 @@ export async function fetchCategories() {
   return await apiFetch('/api/categories')
 }
 
+export async function fetchStates() {
+  return await apiFetch('/api/states')
+}
+
+export async function fetchStatuses() {
+  return await apiFetch('/api/statuses')
+}
+
+export async function fetchStats() {
+  return await apiFetch('/api/stats')
+}
+

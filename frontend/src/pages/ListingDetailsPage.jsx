@@ -3,6 +3,7 @@ import { Button } from '../components/Button.jsx'
 import { PageFade } from '../components/PageFade.jsx'
 import { formatPrice } from '../data/mockListings.js'
 import { useListing } from '../hooks/useListing.js'
+import { useFavorites } from '../context/FavoritesContext.jsx'
 
 function Amenity({ label }) {
   return (
@@ -18,6 +19,7 @@ function Amenity({ label }) {
 export function ListingDetailsPage() {
   const { id } = useParams()
   const { data: listing, loading } = useListing(id)
+  const { isFavorite, toggle } = useFavorites()
 
   if (loading) {
     return (
@@ -64,13 +66,56 @@ export function ListingDetailsPage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_360px] lg:items-start">
         <div className="space-y-6">
           <section className="space-y-2">
-            <h1 className="text-2xl font-semibold tracking-tight">{listing.title}</h1>
+            <div className="flex items-start justify-between gap-3">
+              <h1 className="text-2xl font-semibold tracking-tight">{listing.title}</h1>
+              <div className="flex shrink-0 gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard?.writeText(window.location.href)
+                    alert('Link copied to clipboard!')
+                  }}
+                  className="grid h-10 w-10 place-items-center rounded-full border border-zinc-200 bg-white text-zinc-600 shadow-sm hover:bg-zinc-50"
+                  aria-label="Share"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5">
+                    <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8M16 6l-4-4-4 4M12 2v13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => toggle(listing.id)}
+                  className={`grid h-10 w-10 place-items-center rounded-full border shadow-sm ${
+                    isFavorite(listing.id)
+                      ? 'border-rose-200 bg-rose-50 text-rose-500'
+                      : 'border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50'
+                  }`}
+                  aria-label={isFavorite(listing.id) ? 'Remove from favorites' : 'Save to favorites'}
+                >
+                  <svg viewBox="0 0 24 24" className="h-5 w-5" fill={isFavorite(listing.id) ? 'currentColor' : 'none'}>
+                    <path
+                      d="M12 21s-7-4.6-9.5-8.6C.5 8.9 3 6 6.3 6c1.7 0 3.2.8 3.7 1.7.5-.9 2-1.7 3.7-1.7C17 6 19.5 8.9 21.5 12.4 19 16.4 12 21 12 21z"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </button>
+              </div>
+            </div>
             <div className="text-sm text-zinc-600">{listing.address}</div>
-            {listing.homeStatus && (
-              <span className="inline-block rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-700">
-                {listing.homeStatus}
-              </span>
-            )}
+            <div className="flex flex-wrap gap-2">
+              {listing.homeStatus && (
+                <span className="inline-block rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-700">
+                  {listing.homeStatus}
+                </span>
+              )}
+              {listing.price && listing.livingArea ? (
+                <span className="inline-block rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-600">
+                  ${Math.round(listing.price / listing.livingArea)}/sqft
+                </span>
+              ) : null}
+            </div>
           </section>
 
           <section className="space-y-3">

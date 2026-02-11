@@ -5,6 +5,7 @@ import { HomePage } from './pages/HomePage.jsx'
 import { SearchResultsPage } from './pages/SearchResultsPage.jsx'
 import { ListingDetailsPage } from './pages/ListingDetailsPage.jsx'
 import { AddListingWizardPage } from './pages/AddListingWizardPage.jsx'
+import { FavoritesPage } from './pages/FavoritesPage.jsx'
 import { Footer } from './components/Footer.jsx'
 import { RequireAuth } from './components/RequireAuth.jsx'
 
@@ -19,6 +20,7 @@ export default function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/search" element={<SearchResultsPage />} />
           <Route path="/listing/:id" element={<ListingDetailsPage />} />
+          <Route path="/favorites" element={<FavoritesPage />} />
           <Route
             path="/host/new"
             element={

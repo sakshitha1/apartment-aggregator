@@ -4,8 +4,18 @@ import { Button } from '../components/Button.jsx'
 import { ListingCard } from '../components/ListingCard.jsx'
 import { ListingCardSkeleton } from '../components/Skeletons.jsx'
 import { PageFade } from '../components/PageFade.jsx'
-import { CATEGORIES } from '../data/mockListings.js'
-import { fetchListings } from '../api/listings.js'
+import { CATEGORIES, formatPrice } from '../data/mockListings.js'
+import { fetchListings, fetchStats } from '../api/listings.js'
+
+const CATEGORY_ICONS = {
+  apartment: '🏢',
+  condo: '🏬',
+  'single-family': '🏡',
+  'multi-family': '🏘️',
+  townhouse: '🏠',
+  manufactured: '🏭',
+  lot: '🌳',
+}
 
 function HeroField({ label, children }) {
   return (
@@ -18,17 +28,33 @@ function HeroField({ label, children }) {
   )
 }
 
+function StatCard({ value, label }) {
+  return (
+    <div className="rounded-2xl border border-zinc-200 bg-white p-4 text-center shadow-sm">
+      <div className="text-xl font-bold text-zinc-900">{value}</div>
+      <div className="mt-1 text-xs text-zinc-500">{label}</div>
+    </div>
+  )
+}
+
 export function HomePage() {
   const navigate = useNavigate()
   const [featured, setFeatured] = useState([])
   const [loadingFeatured, setLoadingFeatured] = useState(true)
-  const [location, setLocation] = useState('')
+  const [stats, setStats] = useState(null)
+  const [heroQuery, setHeroQuery] = useState('')
+  const [heroCategory, setHeroCategory] = useState('')
+  const [heroPrice, setHeroPrice] = useState('')
 
   useEffect(() => {
     fetchListings({ sort: 'recommended', limit: 4 })
       .then((items) => setFeatured(items.slice(0, 4)))
       .catch(() => setFeatured([]))
       .finally(() => setLoadingFeatured(false))
+
+    fetchStats()
+      .then((data) => setStats(data))
+      .catch(() => {})
   }, [])
 
   return (
@@ -57,15 +83,17 @@ export function HomePage() {
             onSubmit={(e) => {
               e.preventDefault()
               const params = new URLSearchParams()
-              if (location.trim()) params.set('location', location.trim())
+              if (heroQuery.trim()) params.set('q', heroQuery.trim())
+              if (heroCategory) params.set('category', heroCategory)
+              if (heroPrice) params.set('maxPrice', heroPrice)
               navigate(`/search?${params.toString()}`)
             }}
           >
             <div className="flex flex-col gap-3 md:flex-row md:items-end">
               <HeroField label="Location">
                 <input
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
+                  value={heroQuery}
+                  onChange={(e) => setHeroQuery(e.target.value)}
                   placeholder="City, neighborhood…"
                   className="h-11 w-full rounded-2xl border border-zinc-200 bg-white px-3 text-sm focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20"
                 />
@@ -73,24 +101,28 @@ export function HomePage() {
 
               <HeroField label="Property Type">
                 <select
+                  value={heroCategory}
+                  onChange={(e) => setHeroCategory(e.target.value)}
                   className="h-11 w-full rounded-2xl border border-zinc-200 bg-white px-3 text-sm focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20"
                 >
-                  <option>All types</option>
+                  <option value="">All types</option>
                   {CATEGORIES.map((c) => (
-                    <option key={c.key}>{c.label}</option>
+                    <option key={c.key} value={c.key}>{c.label}</option>
                   ))}
                 </select>
               </HeroField>
 
               <HeroField label="Price Range">
                 <select
+                  value={heroPrice}
+                  onChange={(e) => setHeroPrice(e.target.value)}
                   className="h-11 w-full rounded-2xl border border-zinc-200 bg-white px-3 text-sm focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20"
                 >
-                  <option>Any price</option>
-                  <option>Under $200K</option>
-                  <option>$200K - $500K</option>
-                  <option>$500K - $1M</option>
-                  <option>$1M+</option>
+                  <option value="">Any price</option>
+                  <option value="200000">Under $200K</option>
+                  <option value="500000">Under $500K</option>
+                  <option value="1000000">Under $1M</option>
+                  <option value="5000000">Under $5M</option>
                 </select>
               </HeroField>
 
@@ -122,13 +154,37 @@ export function HomePage() {
               className="flex shrink-0 items-center gap-2 rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm font-medium shadow-sm hover:bg-zinc-50"
             >
               <span className="grid h-8 w-8 place-items-center rounded-xl bg-zinc-100">
-                <span className="text-base">🏠</span>
+                <span className="text-base">{CATEGORY_ICONS[c.key] || '🏠'}</span>
               </span>
               {c.label}
             </button>
           ))}
         </div>
       </section>
+
+      {stats && (
+        <section className="space-y-4">
+          <h2 className="text-lg font-semibold tracking-tight">Market Overview</h2>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <StatCard
+              value={stats.totalListings?.toLocaleString() || '—'}
+              label="Total Listings"
+            />
+            <StatCard
+              value={stats.avgPrice ? formatPrice(stats.avgPrice) : '—'}
+              label="Avg. Price"
+            />
+            <StatCard
+              value={stats.cities?.toLocaleString() || '—'}
+              label="Cities"
+            />
+            <StatCard
+              value={stats.states?.toLocaleString() || '—'}
+              label="States"
+            />
+          </div>
+        </section>
+      )}
 
       <section className="space-y-4">
         <h2 className="text-lg font-semibold tracking-tight">Featured properties</h2>

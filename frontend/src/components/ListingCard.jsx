@@ -1,8 +1,9 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import clsx from 'clsx'
 import { motion } from 'framer-motion'
 import { formatPrice } from '../data/mockListings.js'
+import { useFavorites } from '../context/FavoritesContext.jsx'
 
 function Badge({ children, tone = 'dark' }) {
   const tones = {
@@ -23,7 +24,8 @@ function Badge({ children, tone = 'dark' }) {
 }
 
 export function ListingCard({ listing }) {
-  const [saved, setSaved] = useState(false)
+  const { isFavorite, toggle } = useFavorites()
+  const saved = isFavorite(listing.id)
 
   const topBadges = useMemo(() => {
     const out = []
@@ -33,6 +35,11 @@ export function ListingCard({ listing }) {
     }
     return out.slice(0, 2)
   }, [listing])
+
+  const pricePerSqft =
+    listing.price && listing.livingArea
+      ? Math.round(listing.price / listing.livingArea)
+      : null
 
   return (
     <motion.article
@@ -55,7 +62,7 @@ export function ListingCard({ listing }) {
           ) : (
             <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-zinc-100 to-zinc-200">
               <div className="text-center">
-                <span className="text-3xl">🏠</span>
+                <span className="text-3xl">{getCategoryIcon(listing.category)}</span>
                 <div className="mt-1 text-xs text-zinc-400">{listing.homeType || 'Property'}</div>
               </div>
             </div>
@@ -74,7 +81,7 @@ export function ListingCard({ listing }) {
             aria-label={saved ? 'Remove from favorites' : 'Save to favorites'}
             onClick={(e) => {
               e.preventDefault()
-              setSaved((v) => !v)
+              toggle(listing.id)
             }}
             className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-white/90 shadow-sm hover:bg-white"
           >
@@ -107,14 +114,30 @@ export function ListingCard({ listing }) {
             {listing.livingArea ? <span>· {listing.livingArea} {listing.livingAreaUnits || 'sqft'}</span> : null}
           </div>
 
-          <div className="pt-1 text-sm">
+          <div className="flex items-baseline justify-between pt-1 text-sm">
             <span className="font-semibold text-zinc-900">
               {formatPrice(listing.price)}
             </span>
+            {pricePerSqft ? (
+              <span className="text-xs text-zinc-400">${pricePerSqft}/sqft</span>
+            ) : null}
           </div>
         </div>
       </Link>
     </motion.article>
   )
+}
+
+function getCategoryIcon(category) {
+  const icons = {
+    apartment: '🏢',
+    condo: '🏬',
+    'single-family': '🏡',
+    'multi-family': '🏘️',
+    townhouse: '🏠',
+    manufactured: '🏭',
+    lot: '🌳',
+  }
+  return icons[category] || '🏠'
 }
 

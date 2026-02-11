@@ -146,16 +146,24 @@ function categoryToSql(category) {
 
 // ---------------------------------------------------------------------------
 // GET /api/listings
-// Query params: maxPrice, minBedrooms, category, sort, limit, offset, q
+// Query params: maxPrice, minPrice, minBedrooms, bedrooms, rooms, bathrooms, category, state, homeStatus, minArea, maxArea, yearBuiltMin, yearBuiltMax, sort, limit, offset, q
 // ---------------------------------------------------------------------------
 app.get('/api/listings', (req, res) => {
   try {
     const {
       maxPrice,
+      minPrice,
       minBedrooms,
       bedrooms,
       rooms, // alias
+      bathrooms,
       category,
+      state,
+      homeStatus,
+      minArea,
+      maxArea,
+      yearBuiltMin,
+      yearBuiltMax,
       sort,
       limit: rawLimit,
       offset: rawOffset,
@@ -170,12 +178,22 @@ app.get('/api/listings', (req, res) => {
       conditions.push(`CAST(field2 AS REAL) <= ?`)
       params.push(Number(maxPrice))
     }
+    if (minPrice && minPrice !== 'any') {
+      conditions.push(`CAST(field2 AS REAL) >= ?`)
+      params.push(Number(minPrice))
+    }
 
     // Bedrooms filter (accept both "bedrooms", "minBedrooms", or legacy "rooms")
     const minBed = minBedrooms || bedrooms || rooms
     if (minBed && minBed !== 'any') {
       conditions.push(`CAST(field16 AS INTEGER) >= ?`)
       params.push(Number(minBed))
+    }
+
+    // Bathrooms filter
+    if (bathrooms && bathrooms !== 'any') {
+      conditions.push(`CAST(field15 AS INTEGER) >= ?`)
+      params.push(Number(bathrooms))
     }
 
     // Category / homeType filter
@@ -185,6 +203,38 @@ app.get('/api/listings', (req, res) => {
         conditions.push(`field4 = ?`)
         params.push(homeType)
       }
+    }
+
+    // State filter
+    if (state && state !== 'any') {
+      conditions.push(`field8 = ?`)
+      params.push(state)
+    }
+
+    // Home status filter
+    if (homeStatus && homeStatus !== 'any') {
+      conditions.push(`field3 = ?`)
+      params.push(homeStatus)
+    }
+
+    // Living area filter
+    if (minArea && minArea !== 'any') {
+      conditions.push(`CAST(field12 AS INTEGER) >= ?`)
+      params.push(Number(minArea))
+    }
+    if (maxArea && maxArea !== 'any') {
+      conditions.push(`CAST(field12 AS INTEGER) <= ? AND CAST(field12 AS INTEGER) > 0`)
+      params.push(Number(maxArea))
+    }
+
+    // Year built filter
+    if (yearBuiltMin && yearBuiltMin !== 'any') {
+      conditions.push(`CAST(field11 AS INTEGER) >= ?`)
+      params.push(Number(yearBuiltMin))
+    }
+    if (yearBuiltMax && yearBuiltMax !== 'any') {
+      conditions.push(`CAST(field11 AS INTEGER) <= ? AND CAST(field11 AS INTEGER) > 0`)
+      params.push(Number(yearBuiltMax))
     }
 
     // Text search (city, address, county)
@@ -336,6 +386,135 @@ app.get('/api/categories', (_req, res) => {
     res.json(categories)
   } catch (err) {
     console.error('GET /api/categories error:', err)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// ---------------------------------------------------------------------------
+// GET /api/states  – distinct US states in the dataset
+// ---------------------------------------------------------------------------
+app.get('/api/states', (_req, res) => {
+  try {
+    const rows = db
+      .prepare(
+        `SELECT DISTINCT field8 AS state FROM property_listings
+         WHERE field1 != ? AND field8 IS NOT NULL AND field8 != ''
+         ORDER BY field8`,
+      )
+      .all(HEADER_ZPID)
+
+    res.json(rows.map((r) => r.state))
+  } catch (err) {
+    console.error('GET /api/states error:', err)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// ---------------------------------------------------------------------------
+// GET /api/statuses  – distinct home statuses
+// ---------------------------------------------------------------------------
+app.get('/api/statuses', (_req, res) => {
+  try {
+    const rows = db
+      .prepare(
+        `SELECT DISTINCT field3 AS status FROM property_listings
+         WHERE field1 != ? AND field3 IS NOT NULL AND field3 != ''
+         ORDER BY field3`,
+      )
+      .all(HEADER_ZPID)
+
+    res.json(rows.map((r) => r.status))
+  } catch (err) {
+    console.error('GET /api/statuses error:', err)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// ---------------------------------------------------------------------------
+// GET /api/stats  – aggregate statistics
+// ---------------------------------------------------------------------------
+app.get('/api/stats', (_req, res) => {
+  try {
+    const row = db
+      .prepare(
+        `SELECT
+          COUNT(*) AS total,
+          ROUND(AVG(CAST(field2 AS REAL)), 0) AS avgPrice,
+          MIN(CAST(field2 AS REAL)) AS minPrice,
+          MAX(CAST(field2 AS REAL)) AS maxPrice,
+          COUNT(DISTINCT field8) AS states,
+          COUNT(DISTINCT field7) AS cities
+        FROM property_listings
+        WHERE field1 != ? AND CAST(field2 AS REAL) > 0`,
+      )
+      .get(HEADER_ZPID)
+
+    const typeCounts = db
+      .prepare(
+        `SELECT field4 AS homeType, COUNT(*) AS count
+         FROM property_listings
+         WHERE field1 != ? AND field4 IS NOT NULL AND field4 != ''
+         GROUP BY field4
+         ORDER BY count DESC`,
+      )
+      .all(HEADER_ZPID)
+      .map((r) => ({
+        type: r.homeType,
+        key: (r.homeType || '').toLowerCase().replace(/\s+/g, '-'),
+        count: r.count,
+      }))
+
+    res.json({
+      totalListings: row.total,
+      avgPrice: row.avgPrice,
+      minPrice: row.minPrice,
+      maxPrice: row.maxPrice,
+      states: row.states,
+      cities: row.cities,
+      byType: typeCounts,
+    })
+  } catch (err) {
+    console.error('GET /api/stats error:', err)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// ---------------------------------------------------------------------------
+// GET /api/states  – distinct states
+// ---------------------------------------------------------------------------
+app.get('/api/states', (_req, res) => {
+  try {
+    const rows = db
+      .prepare(
+        `SELECT DISTINCT field8 AS state FROM property_listings WHERE field1 != ? AND field8 IS NOT NULL AND field8 != '' ORDER BY field8`,
+      )
+      .all(HEADER_ZPID)
+
+    const states = rows.map((r) => r.state)
+
+    res.json(states)
+  } catch (err) {
+    console.error('GET /api/states error:', err)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// ---------------------------------------------------------------------------
+// GET /api/statuses  – distinct home statuses
+// ---------------------------------------------------------------------------
+app.get('/api/statuses', (_req, res) => {
+  try {
+    const rows = db
+      .prepare(
+        `SELECT DISTINCT field3 AS homeStatus FROM property_listings WHERE field1 != ? AND field3 IS NOT NULL AND field3 != '' ORDER BY field3`,
+      )
+      .all(HEADER_ZPID)
+
+    const statuses = rows.map((r) => r.homeStatus)
+
+    res.json(statuses)
+  } catch (err) {
+    console.error('GET /api/statuses error:', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })

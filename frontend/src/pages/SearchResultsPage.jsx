@@ -12,9 +12,18 @@ export function SearchResultsPage() {
   const filtersFromUrl = useMemo(() => {
     return {
       maxPrice: Number(params.get('maxPrice') || 5000000),
+      minPrice: Number(params.get('minPrice') || 0),
       rooms: params.get('rooms') || 'any',
+      bathrooms: params.get('bathrooms') || 'any',
       category: params.get('category') || 'any',
+      homeStatus: params.get('homeStatus') || 'any',
+      state: params.get('state') || 'any',
+      minArea: params.get('minArea') || '',
+      maxArea: params.get('maxArea') || '',
+      yearBuiltMin: params.get('yearBuiltMin') || '',
+      yearBuiltMax: params.get('yearBuiltMax') || '',
       sort: params.get('sort') || 'recommended',
+      q: params.get('q') || '',
     }
   }, [params])
 
@@ -26,28 +35,53 @@ export function SearchResultsPage() {
 
   // Keep URL in sync (shareable/searchable)
   useEffect(() => {
-    const next = new URLSearchParams(params)
-    next.set('maxPrice', String(filters.maxPrice))
-    next.set('rooms', String(filters.rooms))
-    next.set('category', filters.category || 'any')
-    next.set('sort', filters.sort || 'recommended')
+    const next = new URLSearchParams()
+    // Only write non-default values to keep URLs clean
+    if (filters.maxPrice < 5000000) next.set('maxPrice', String(filters.maxPrice))
+    if (Number(filters.minPrice) > 0) next.set('minPrice', String(filters.minPrice))
+    if (filters.rooms && filters.rooms !== 'any') next.set('rooms', filters.rooms)
+    if (filters.bathrooms && filters.bathrooms !== 'any') next.set('bathrooms', filters.bathrooms)
+    if (filters.category && filters.category !== 'any') next.set('category', filters.category)
+    if (filters.homeStatus && filters.homeStatus !== 'any') next.set('homeStatus', filters.homeStatus)
+    if (filters.state && filters.state !== 'any') next.set('state', filters.state)
+    if (filters.minArea) next.set('minArea', String(filters.minArea))
+    if (filters.maxArea) next.set('maxArea', String(filters.maxArea))
+    if (filters.yearBuiltMin) next.set('yearBuiltMin', String(filters.yearBuiltMin))
+    if (filters.yearBuiltMax) next.set('yearBuiltMax', String(filters.yearBuiltMax))
+    if (filters.sort && filters.sort !== 'recommended') next.set('sort', filters.sort)
+    if (filters.q) next.set('q', filters.q)
     setParams(next, { replace: true })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters])
 
   const { data: dataset, loading, error } = useListings({
     maxPrice: filters.maxPrice,
+    minPrice: Number(filters.minPrice) > 0 ? filters.minPrice : undefined,
     rooms: filters.rooms,
+    bathrooms: filters.bathrooms,
     category: filters.category,
+    homeStatus: filters.homeStatus,
+    state: filters.state,
+    minArea: filters.minArea || undefined,
+    maxArea: filters.maxArea || undefined,
+    yearBuiltMin: filters.yearBuiltMin || undefined,
+    yearBuiltMax: filters.yearBuiltMax || undefined,
     sort: filters.sort,
+    q: filters.q,
   })
 
   const filtered = useMemo(() => {
+    // The backend already applies all filters, but we do a light client-side
+    // pass for instant feedback while the next request is in-flight.
     const minRooms = filters.rooms === 'any' ? 0 : Number(filters.rooms)
+    const minBath = filters.bathrooms === 'any' ? 0 : Number(filters.bathrooms)
     const base = (dataset || []).filter((l) => {
       if (filters.category !== 'any' && l.category !== filters.category) return false
       if (typeof l.price === 'number' && l.price > filters.maxPrice) return false
+      if (Number(filters.minPrice) > 0 && typeof l.price === 'number' && l.price < Number(filters.minPrice)) return false
       if (minRooms && (l.rooms || l.bedrooms || 0) < minRooms) return false
+      if (minBath && (l.bathrooms || 0) < minBath) return false
+      if (filters.state && filters.state !== 'any' && l.state !== filters.state) return false
       return true
     })
 

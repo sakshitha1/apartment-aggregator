@@ -35,24 +35,26 @@ export function FilterBar({ filters, onChange, className }) {
         <SectionTitle>Price range (max)</SectionTitle>
         <input
           type="range"
-          min={5000}
-          max={80000}
-          step={1000}
+          min={50000}
+          max={5000000}
+          step={50000}
           value={filters.maxPrice}
           onChange={(e) => update({ maxPrice: Number(e.target.value) })}
           className="w-full accent-rose-500"
         />
         <div className="flex items-center justify-between text-xs text-zinc-600">
-          <span>5,000</span>
+          <span>$50K</span>
           <span className="font-semibold text-zinc-900">
-            {filters.maxPrice.toLocaleString('ru-KZ')} KZT
+            ${filters.maxPrice >= 1000000
+              ? `${(filters.maxPrice / 1000000).toFixed(1)}M`
+              : `${(filters.maxPrice / 1000).toFixed(0)}K`}
           </span>
-          <span>80,000</span>
+          <span>$5M</span>
         </div>
       </div>
 
       <div className="space-y-2">
-        <SectionTitle>Rooms</SectionTitle>
+        <SectionTitle>Bedrooms</SectionTitle>
         <select
           value={filters.rooms}
           onChange={(e) => update({ rooms: e.target.value })}
@@ -66,30 +68,6 @@ export function FilterBar({ filters, onChange, className }) {
         </select>
       </div>
 
-      <label className="flex items-center justify-between gap-3">
-        <div>
-          <div className="text-xs font-semibold text-zinc-700">Has photos</div>
-          <div className="text-xs text-zinc-500">Only show listings with photos</div>
-        </div>
-        <button
-          type="button"
-          onClick={() => update({ hasPhotos: !filters.hasPhotos })}
-          className={clsx(
-            'relative h-7 w-12 rounded-full border transition',
-            filters.hasPhotos
-              ? 'border-rose-500 bg-rose-500'
-              : 'border-zinc-300 bg-zinc-200',
-          )}
-          aria-pressed={filters.hasPhotos}
-        >
-          <span
-            className={clsx(
-              'absolute top-0.5 h-6 w-6 rounded-full bg-white shadow-sm transition',
-              filters.hasPhotos ? 'left-5' : 'left-0.5',
-            )}
-          />
-        </button>
-      </label>
     </aside>
   )
 }

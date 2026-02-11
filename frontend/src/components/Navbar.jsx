@@ -40,8 +40,8 @@ export function Navbar() {
           onClick={() => navigate('/search')}
           className="hidden items-center gap-2 rounded-full border border-zinc-200 bg-white px-4 py-2 text-sm shadow-sm hover:shadow md:flex"
         >
-          <span className="font-medium">Where to?</span>
-          <span className="text-zinc-400">Anywhere · Any time · Add guests</span>
+          <span className="font-medium">Search properties</span>
+          <span className="text-zinc-400">Location · Type · Price</span>
         </button>
 
         <Button
@@ -52,7 +52,7 @@ export function Navbar() {
             navigate('/host/new')
           }}
         >
-          Become a host
+          List your property
         </Button>
 
         <div className="relative">
@@ -156,7 +156,7 @@ export function Navbar() {
             <div>
               <div className="text-sm font-semibold">Search</div>
               <div className="text-xs text-zinc-500">
-                Location · Dates · Guests
+                Location · Type · Price
               </div>
             </div>
             <span className="grid h-9 w-9 place-items-center rounded-full bg-rose-500 text-white">

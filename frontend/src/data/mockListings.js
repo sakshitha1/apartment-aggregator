@@ -1,9 +1,11 @@
 export const CATEGORIES = [
-  { key: 'apartments', label: 'Apartments' },
-  { key: 'houses', label: 'Houses' },
-  { key: 'villas', label: 'Villas' },
-  { key: 'studios', label: 'Studios' },
-  { key: 'lofts', label: 'Lofts' },
+  { key: 'single-family', label: 'Single Family' },
+  { key: 'apartment', label: 'Apartment' },
+  { key: 'condo', label: 'Condo' },
+  { key: 'townhouse', label: 'Townhouse' },
+  { key: 'multi-family', label: 'Multi Family' },
+  { key: 'manufactured', label: 'Manufactured' },
+  { key: 'lot', label: 'Lot' },
 ]
 
 const u = (id) =>
@@ -14,12 +16,12 @@ export const MOCK_LISTINGS = [
     id: 'l1',
     title: 'Sunny apartment near downtown',
     address: 'Almaty, Medeu District',
-    price: 18000,
-    priceUnit: 'night',
-    category: 'apartments',
+    price: 18000000,
+    priceUnit: 'total',
+    category: 'apartment',
     rooms: 2,
     floor: 5,
-    badges: ['Top Host'],
+    badges: ['Top Seller'],
     isNew: true,
     hasPhotos: true,
     host: { name: 'Aida', avatarUrl: u('photo-1520975661595-6453be3f7070') },
@@ -37,9 +39,9 @@ export const MOCK_LISTINGS = [
     id: 'l2',
     title: 'Modern house with a garden',
     address: 'Astana, Yesil District',
-    price: 42000,
-    priceUnit: 'night',
-    category: 'houses',
+    price: 42000000,
+    priceUnit: 'total',
+    category: 'single-family',
     rooms: 4,
     floor: 1,
     badges: [],
@@ -60,9 +62,9 @@ export const MOCK_LISTINGS = [
     id: 'l3',
     title: 'Cozy studio with city views',
     address: 'Shymkent, Abay District',
-    price: 12000,
-    priceUnit: 'night',
-    category: 'studios',
+    price: 12000000,
+    priceUnit: 'total',
+    category: 'condo',
     rooms: 1,
     floor: 12,
     badges: ['New'],
@@ -81,11 +83,14 @@ export const MOCK_LISTINGS = [
   },
 ]
 
-export function formatPriceKZT(value) {
-  return new Intl.NumberFormat('ru-KZ', {
+export function formatPrice(value) {
+  return new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency: 'KZT',
+    currency: 'USD',
     maximumFractionDigits: 0,
   }).format(value)
 }
+
+/** @deprecated Use formatPrice instead */
+export const formatPriceKZT = formatPrice
 

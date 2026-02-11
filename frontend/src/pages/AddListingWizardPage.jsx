@@ -88,11 +88,11 @@ export function AddListingWizardPage() {
   const [form, setForm] = useState({
     title: '',
     description: '',
-    category: 'apartments',
+    category: 'single-family',
     address: '',
-    price: 15000,
-    rooms: 1,
-    floor: 1,
+    price: 250000,
+    bedrooms: 3,
+    bathrooms: 2,
     images: [],
   })
 
@@ -100,7 +100,7 @@ export function AddListingWizardPage() {
     if (step.key === 'basic') return form.title.trim().length >= 5
     if (step.key === 'location') return form.address.trim().length >= 5
     if (step.key === 'details') return Number(form.price) > 0
-    if (step.key === 'media') return form.images.length >= 1
+    if (step.key === 'media') return true // photos are optional (DB has no images)
     return true
   }, [form, step.key])
 
@@ -114,8 +114,8 @@ export function AddListingWizardPage() {
     <PageFade>
       <div className="mx-auto max-w-3xl space-y-6">
         <div>
-          <h1 className="text-lg font-semibold tracking-tight">Add property</h1>
-          <div className="text-sm text-zinc-600">Become a host in 5 quick steps.</div>
+          <h1 className="text-lg font-semibold tracking-tight">List your property</h1>
+          <div className="text-sm text-zinc-600">Sell your property in 5 quick steps.</div>
         </div>
 
         <div className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm">
@@ -147,7 +147,7 @@ export function AddListingWizardPage() {
                 <TextInput
                   value={form.title}
                   onChange={(e) => setForm((s) => ({ ...s, title: e.target.value }))}
-                  placeholder="e.g., Bright apartment near the park"
+                  placeholder="e.g., Spacious apartment for sale near the park"
                 />
               </Field>
               <Field label="Description">
@@ -197,7 +197,7 @@ export function AddListingWizardPage() {
 
           {step.key === 'details' ? (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <Field label="Price (KZT)">
+              <Field label="Price (USD)">
                 <TextInput
                   type="number"
                   min={1}
@@ -207,23 +207,23 @@ export function AddListingWizardPage() {
                   }
                 />
               </Field>
-              <Field label="Rooms">
+              <Field label="Bedrooms">
                 <TextInput
                   type="number"
                   min={0}
-                  value={form.rooms}
+                  value={form.bedrooms}
                   onChange={(e) =>
-                    setForm((s) => ({ ...s, rooms: Number(e.target.value) }))
+                    setForm((s) => ({ ...s, bedrooms: Number(e.target.value) }))
                   }
                 />
               </Field>
-              <Field label="Floor">
+              <Field label="Bathrooms">
                 <TextInput
                   type="number"
                   min={0}
-                  value={form.floor}
+                  value={form.bathrooms}
                   onChange={(e) =>
-                    setForm((s) => ({ ...s, floor: Number(e.target.value) }))
+                    setForm((s) => ({ ...s, bathrooms: Number(e.target.value) }))
                   }
                 />
               </Field>
@@ -246,13 +246,13 @@ export function AddListingWizardPage() {
                     {form.category}
                   </span>
                   <span className="rounded-full bg-white px-3 py-1 font-semibold text-zinc-700">
-                    {form.rooms} rooms
+                    {form.bedrooms} bd
                   </span>
                   <span className="rounded-full bg-white px-3 py-1 font-semibold text-zinc-700">
-                    floor {form.floor}
+                    {form.bathrooms} ba
                   </span>
                   <span className="rounded-full bg-white px-3 py-1 font-semibold text-zinc-700">
-                    {Number(form.price).toLocaleString('ru-KZ')} KZT
+                    {Number(form.price).toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })}
                   </span>
                 </div>
               </div>

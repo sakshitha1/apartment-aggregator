@@ -1,10 +1,8 @@
-import { useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Button } from '../components/Button.jsx'
-import { ImageCarousel } from '../components/ImageCarousel.jsx'
-import { StaticMap } from '../components/StaticMap.jsx'
 import { PageFade } from '../components/PageFade.jsx'
-import { formatPriceKZT, MOCK_LISTINGS } from '../data/mockListings.js'
+import { formatPrice } from '../data/mockListings.js'
+import { useListing } from '../hooks/useListing.js'
 
 function Amenity({ label }) {
   return (
@@ -19,14 +17,18 @@ function Amenity({ label }) {
 
 export function ListingDetailsPage() {
   const { id } = useParams()
-  const baseId = (id || '').split('-')[0]
+  const { data: listing, loading } = useListing(id)
 
-  const listing = useMemo(
-    () => MOCK_LISTINGS.find((l) => l.id === baseId),
-    [baseId],
-  )
-
-  const [dates, setDates] = useState({ start: '', end: '' })
+  if (loading) {
+    return (
+      <PageFade>
+        <div className="space-y-4">
+          <div className="h-8 w-64 animate-pulse rounded-xl bg-zinc-200" />
+          <div className="h-64 animate-pulse rounded-3xl bg-zinc-200" />
+        </div>
+      </PageFade>
+    )
+  }
 
   if (!listing) {
     return (
@@ -48,28 +50,14 @@ export function ListingDetailsPage() {
   return (
     <PageFade>
       <div className="space-y-6">
-      {/* Mobile: carousel */}
-      <div className="sm:hidden">
-        <ImageCarousel images={listing.photos} />
-      </div>
 
-      {/* Desktop: 5-photo mosaic */}
-      <div className="hidden overflow-hidden rounded-3xl border border-zinc-200 bg-zinc-100 shadow-sm sm:block">
-        <div className="grid grid-cols-4 grid-rows-2 gap-2 p-2">
-          <img
-            src={listing.photos[0]}
-            alt=""
-            className="col-span-2 row-span-2 h-full w-full rounded-2xl object-cover"
-          />
-          {listing.photos.slice(1, 5).map((src, i) => (
-            <img
-              key={src}
-              src={src}
-              alt=""
-              className="h-full w-full rounded-2xl object-cover"
-              loading={i < 1 ? 'eager' : 'lazy'}
-            />
-          ))}
+      {/* Hero placeholder (no photos in DB) */}
+      <div className="overflow-hidden rounded-3xl border border-zinc-200 bg-gradient-to-br from-zinc-100 to-zinc-200 shadow-sm">
+        <div className="flex h-64 items-center justify-center sm:h-80">
+          <div className="text-center">
+            <span className="text-5xl">🏠</span>
+            <div className="mt-2 text-sm text-zinc-400">{listing.homeType || 'Property'}</div>
+          </div>
         </div>
       </div>
 
@@ -78,34 +66,84 @@ export function ListingDetailsPage() {
           <section className="space-y-2">
             <h1 className="text-2xl font-semibold tracking-tight">{listing.title}</h1>
             <div className="text-sm text-zinc-600">{listing.address}</div>
-
-            <div className="mt-4 flex items-center gap-3">
-              <img
-                src={listing.host.avatarUrl}
-                alt={listing.host.name}
-                className="h-11 w-11 rounded-full object-cover"
-                loading="lazy"
-              />
-              <div>
-                <div className="text-sm font-semibold">Hosted by {listing.host.name}</div>
-                <div className="text-xs text-zinc-500">Top-rated host</div>
-              </div>
-            </div>
+            {listing.homeStatus && (
+              <span className="inline-block rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-700">
+                {listing.homeStatus}
+              </span>
+            )}
           </section>
 
           <section className="space-y-3">
-            <h2 className="text-lg font-semibold tracking-tight">Amenities</h2>
+            <h2 className="text-lg font-semibold tracking-tight">Property Details</h2>
             <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {listing.amenities.map((a) => (
+              {listing.amenities?.map((a) => (
                 <Amenity key={a} label={a} />
               ))}
             </ul>
           </section>
 
-          <section className="space-y-3">
-            <h2 className="text-lg font-semibold tracking-tight">Map</h2>
-            <StaticMap lat={listing.location.lat} lng={listing.location.lng} />
-          </section>
+          {listing.priceHistory?.length > 0 && (
+            <section className="space-y-3">
+              <h2 className="text-lg font-semibold tracking-tight">Price History</h2>
+              <div className="overflow-hidden rounded-2xl border border-zinc-200">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-zinc-50 text-xs font-semibold text-zinc-600">
+                    <tr>
+                      <th className="px-4 py-2">Date</th>
+                      <th className="px-4 py-2">Event</th>
+                      <th className="px-4 py-2">Price</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-100">
+                    {listing.priceHistory.map((h, i) => (
+                      <tr key={i}>
+                        <td className="px-4 py-2 text-zinc-500">{h.date}</td>
+                        <td className="px-4 py-2">{h.event}</td>
+                        <td className="px-4 py-2 font-semibold">{formatPrice(h.price)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          )}
+
+          {listing.schools?.length > 0 && (
+            <section className="space-y-3">
+              <h2 className="text-lg font-semibold tracking-tight">Nearby Schools</h2>
+              <div className="space-y-2">
+                {listing.schools.map((s, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center justify-between rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm shadow-sm"
+                  >
+                    <div>
+                      <div className="font-medium">{s.name}</div>
+                      <div className="text-xs text-zinc-500">
+                        {s.type} · {s.gradeLevel} · {s.distance}
+                      </div>
+                    </div>
+                    {s.rating && (
+                      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-rose-50 text-sm font-bold text-rose-600">
+                        {s.rating}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {listing.url && (
+            <a
+              href={listing.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block text-sm font-semibold text-rose-600 hover:text-rose-700"
+            >
+              View on Zillow →
+            </a>
+          )}
         </div>
 
         {/* Sticky action box */}
@@ -114,53 +152,68 @@ export function ListingDetailsPage() {
             <div className="flex items-end justify-between">
               <div>
                 <div className="text-xl font-semibold text-zinc-900">
-                  {formatPriceKZT(listing.price)}
+                  {formatPrice(listing.price)}
                 </div>
-                <div className="text-xs text-zinc-500">per {listing.priceUnit}</div>
+                <div className="text-xs text-zinc-500">
+                  {listing.homeStatus === 'Recently Sold' ? 'Sold price' : 'Asking price'}
+                </div>
               </div>
-              <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-700">
-                {listing.rooms} rooms
-              </span>
+              {listing.bedrooms > 0 && (
+                <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-700">
+                  {listing.bedrooms} bed · {listing.bathrooms} bath
+                </span>
+              )}
             </div>
 
-            <div className="mt-4 grid grid-cols-1 gap-3">
-              <label className="block">
-                <div className="mb-1 text-xs font-medium text-zinc-600">
-                  Start date
+            <div className="mt-4 space-y-3">
+              <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm">
+                <div className="font-semibold text-zinc-900">Quick Facts</div>
+                <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-zinc-600">
+                  <div>Type: {listing.homeType}</div>
+                  <div>Beds: {listing.bedrooms || '—'}</div>
+                  <div>Baths: {listing.bathrooms || '—'}</div>
+                  <div>Area: {listing.livingArea ? `${listing.livingArea} ${listing.livingAreaUnits || 'sqft'}` : '—'}</div>
+                  <div>Year Built: {listing.yearBuilt || '—'}</div>
+                  <div>County: {listing.county || '—'}</div>
                 </div>
-                <input
-                  type="date"
-                  value={dates.start}
-                  onChange={(e) => setDates((d) => ({ ...d, start: e.target.value }))}
-                  className="h-11 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm shadow-sm focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20"
-                />
-              </label>
-              <label className="block">
-                <div className="mb-1 text-xs font-medium text-zinc-600">
-                  End date
+              </div>
+
+              {listing.taxInfo && (
+                <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm">
+                  <div className="font-semibold text-zinc-900">Tax Info</div>
+                  <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-zinc-600">
+                    {listing.taxInfo.taxPaid != null && <div>Tax Paid: {formatPrice(listing.taxInfo.taxPaid)}</div>}
+                    {listing.taxInfo.propertyValue != null && <div>Value: {formatPrice(listing.taxInfo.propertyValue)}</div>}
+                  </div>
                 </div>
-                <input
-                  type="date"
-                  value={dates.end}
-                  onChange={(e) => setDates((d) => ({ ...d, end: e.target.value }))}
-                  className="h-11 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm shadow-sm focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20"
-                />
-              </label>
+              )}
+
+              {listing.mortgageInfo && listing.mortgageInfo.rate && (
+                <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm">
+                  <div className="font-semibold text-zinc-900">Mortgage</div>
+                  <div className="mt-2 text-xs text-zinc-600">
+                    Rate: {listing.mortgageInfo.rate}% ({listing.mortgageInfo.rateSource})
+                  </div>
+                </div>
+              )}
             </div>
 
             <Button
               size="lg"
               className="mt-4 w-full"
               onClick={() => {
-                // Placeholder for backend integration
-                alert('Contact request sent (demo).')
+                if (listing.url) {
+                  window.open(listing.url, '_blank')
+                } else {
+                  alert('No external listing URL available.')
+                }
               }}
             >
-              Contact host
+              View on Zillow
             </Button>
 
             <div className="mt-3 text-center text-xs text-zinc-500">
-              You won’t be charged yet.
+              {listing.timeOnZillow ? `Time on Zillow: ${listing.timeOnZillow}` : 'Schedule a viewing or make an offer'}
             </div>
           </div>
         </aside>

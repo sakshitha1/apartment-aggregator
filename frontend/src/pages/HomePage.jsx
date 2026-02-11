@@ -1,9 +1,11 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '../components/Button.jsx'
 import { ListingCard } from '../components/ListingCard.jsx'
+import { ListingCardSkeleton } from '../components/Skeletons.jsx'
 import { PageFade } from '../components/PageFade.jsx'
-import { CATEGORIES, MOCK_LISTINGS } from '../data/mockListings.js'
+import { CATEGORIES } from '../data/mockListings.js'
+import { fetchListings } from '../api/listings.js'
 
 function HeroField({ label, children }) {
   return (
@@ -18,9 +20,16 @@ function HeroField({ label, children }) {
 
 export function HomePage() {
   const navigate = useNavigate()
-  const featured = useMemo(() => MOCK_LISTINGS.slice(0, 4), [])
+  const [featured, setFeatured] = useState([])
+  const [loadingFeatured, setLoadingFeatured] = useState(true)
   const [location, setLocation] = useState('')
-  const [guests, setGuests] = useState(2)
+
+  useEffect(() => {
+    fetchListings({ sort: 'recommended', limit: 4 })
+      .then((items) => setFeatured(items.slice(0, 4)))
+      .catch(() => setFeatured([]))
+      .finally(() => setLoadingFeatured(false))
+  }, [])
 
   return (
     <PageFade>
@@ -36,10 +45,10 @@ export function HomePage() {
         <div className="relative px-5 py-12 sm:px-10 sm:py-16">
           <div className="max-w-xl">
             <h1 className="text-2xl font-semibold tracking-tight sm:text-4xl">
-              Find your next place — fast.
+              Buy or sell your dream home.
             </h1>
             <p className="mt-3 text-sm text-white/80 sm:text-base">
-              Minimal, mobile-first search with image-first listings inspired by Airbnb.
+              A peer-to-peer marketplace for buying and selling properties directly.
             </p>
           </div>
 
@@ -49,7 +58,6 @@ export function HomePage() {
               e.preventDefault()
               const params = new URLSearchParams()
               if (location.trim()) params.set('location', location.trim())
-              params.set('guests', String(guests))
               navigate(`/search?${params.toString()}`)
             }}
           >
@@ -63,24 +71,27 @@ export function HomePage() {
                 />
               </HeroField>
 
-              <HeroField label="Dates">
-                <button
-                  type="button"
-                  className="h-11 w-full rounded-2xl border border-zinc-200 bg-white px-3 text-left text-sm text-zinc-500 hover:bg-zinc-50"
+              <HeroField label="Property Type">
+                <select
+                  className="h-11 w-full rounded-2xl border border-zinc-200 bg-white px-3 text-sm focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20"
                 >
-                  Add dates
-                </button>
+                  <option>All types</option>
+                  {CATEGORIES.map((c) => (
+                    <option key={c.key}>{c.label}</option>
+                  ))}
+                </select>
               </HeroField>
 
-              <HeroField label="Guests">
-                <input
-                  type="number"
-                  min={1}
-                  max={12}
-                  value={guests}
-                  onChange={(e) => setGuests(Number(e.target.value))}
+              <HeroField label="Price Range">
+                <select
                   className="h-11 w-full rounded-2xl border border-zinc-200 bg-white px-3 text-sm focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20"
-                />
+                >
+                  <option>Any price</option>
+                  <option>Under $200K</option>
+                  <option>$200K - $500K</option>
+                  <option>$500K - $1M</option>
+                  <option>$1M+</option>
+                </select>
               </HeroField>
 
               <Button size="lg" className="w-full md:w-auto">
@@ -120,11 +131,11 @@ export function HomePage() {
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-lg font-semibold tracking-tight">Featured listings</h2>
+        <h2 className="text-lg font-semibold tracking-tight">Featured properties</h2>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {featured.map((l) => (
-            <ListingCard key={l.id} listing={l} />
-          ))}
+          {loadingFeatured
+            ? Array.from({ length: 4 }).map((_, i) => <ListingCardSkeleton key={i} />)
+            : featured.map((l) => <ListingCard key={l.id} listing={l} />)}
         </div>
       </section>
       </div>

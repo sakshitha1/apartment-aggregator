@@ -11,13 +11,17 @@ export async function fetchListings(params = {}) {
     qs.set(k, String(v))
   }
   const suffix = qs.toString() ? `?${qs.toString()}` : ''
-  const data = await apiFetch(`/listings${suffix}`)
+  const data = await apiFetch(`/api/listings${suffix}`)
   if (Array.isArray(data)) return data
   if (data?.items && Array.isArray(data.items)) return data.items
   return []
 }
 
 export async function fetchListingById(id) {
-  return await apiFetch(`/listings/${encodeURIComponent(id)}`)
+  return await apiFetch(`/api/listings/${encodeURIComponent(id)}`)
+}
+
+export async function fetchCategories() {
+  return await apiFetch('/api/categories')
 }
 

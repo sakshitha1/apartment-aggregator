@@ -1,0 +1,34 @@
+# Dependencies
+node_modules/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Build output
+dist/
+build/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Python
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Large database file (118MB – exceeds GitHub 100MB limit)
+# Download separately: see README.md for instructions
+apartments-listings.db
+*.db-journal
+*.db-wal

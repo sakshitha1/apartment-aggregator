@@ -11,11 +11,10 @@ export function SearchResultsPage() {
 
   const filtersFromUrl = useMemo(() => {
     return {
-      maxPrice: Number(params.get('maxPrice') || 50000),
+      maxPrice: Number(params.get('maxPrice') || 5000000),
       rooms: params.get('rooms') || 'any',
-      hasPhotos: (params.get('hasPhotos') || '1') === '1',
       category: params.get('category') || 'any',
-      sort: params.get('sort') || 'recommended', // 'recommended' | 'price_asc' | 'price_desc' | 'new'
+      sort: params.get('sort') || 'recommended',
     }
   }, [params])
 
@@ -30,29 +29,25 @@ export function SearchResultsPage() {
     const next = new URLSearchParams(params)
     next.set('maxPrice', String(filters.maxPrice))
     next.set('rooms', String(filters.rooms))
-    next.set('hasPhotos', filters.hasPhotos ? '1' : '0')
     next.set('category', filters.category || 'any')
     next.set('sort', filters.sort || 'recommended')
     setParams(next, { replace: true })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters])
 
-  const { data: dataset, loading, source } = useListings({
+  const { data: dataset, loading, error } = useListings({
     maxPrice: filters.maxPrice,
     rooms: filters.rooms,
-    hasPhotos: filters.hasPhotos ? 1 : 0,
     category: filters.category,
     sort: filters.sort,
   })
 
   const filtered = useMemo(() => {
-    // If API returns already-filtered data, this is a no-op for most cases.
     const minRooms = filters.rooms === 'any' ? 0 : Number(filters.rooms)
     const base = (dataset || []).filter((l) => {
       if (filters.category !== 'any' && l.category !== filters.category) return false
       if (typeof l.price === 'number' && l.price > filters.maxPrice) return false
-      if (minRooms && l.rooms < minRooms) return false
-      if (filters.hasPhotos && !l.hasPhotos) return false
+      if (minRooms && (l.rooms || l.bedrooms || 0) < minRooms) return false
       return true
     })
 
@@ -123,11 +118,11 @@ export function SearchResultsPage() {
         <div>
           <h1 className="text-lg font-semibold tracking-tight">Search results</h1>
           <div className="text-sm text-zinc-600">
-            {loading ? 'Loading…' : `${filtered.length} homes found`}
+            {loading ? 'Loading…' : `${filtered.length} properties for sale`}
           </div>
-          {!loading && source === 'mock' ? (
-            <div className="mt-1 text-xs text-zinc-500">
-              Showing demo data (set `VITE_API_BASE_URL` to use your backend).
+          {!loading && error ? (
+            <div className="mt-1 text-xs text-red-500">
+              Could not reach the backend. Make sure the API server is running.
             </div>
           ) : null}
         </div>

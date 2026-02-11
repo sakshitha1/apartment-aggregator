@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import clsx from 'clsx'
 import { motion } from 'framer-motion'
-import { formatPriceKZT } from '../data/mockListings.js'
+import { formatPrice } from '../data/mockListings.js'
 
 function Badge({ children, tone = 'dark' }) {
   const tones = {
@@ -45,12 +45,21 @@ export function ListingCard({ listing }) {
         className="block overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm transition hover:shadow-md"
       >
         <div className="relative aspect-video overflow-hidden bg-zinc-100">
-          <img
-            src={listing.photos?.[0]}
-            alt={listing.title}
-            className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
-            loading="lazy"
-          />
+          {listing.photos?.length ? (
+            <img
+              src={listing.photos[0]}
+              alt={listing.title}
+              className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
+              loading="lazy"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-zinc-100 to-zinc-200">
+              <div className="text-center">
+                <span className="text-3xl">🏠</span>
+                <div className="mt-1 text-xs text-zinc-400">{listing.homeType || 'Property'}</div>
+              </div>
+            </div>
+          )}
 
           <div className="absolute left-3 top-3 flex gap-2">
             {topBadges.map((b) => (
@@ -92,11 +101,16 @@ export function ListingCard({ listing }) {
             {listing.address}
           </div>
 
+          <div className="flex flex-wrap items-center gap-2 pt-1 text-xs text-zinc-500">
+            {listing.bedrooms ? <span>{listing.bedrooms} bd</span> : null}
+            {listing.bathrooms ? <span>· {listing.bathrooms} ba</span> : null}
+            {listing.livingArea ? <span>· {listing.livingArea} {listing.livingAreaUnits || 'sqft'}</span> : null}
+          </div>
+
           <div className="pt-1 text-sm">
             <span className="font-semibold text-zinc-900">
-              {formatPriceKZT(listing.price)}
-            </span>{' '}
-            <span className="text-zinc-500">/ {listing.priceUnit}</span>
+              {formatPrice(listing.price)}
+            </span>
           </div>
         </div>
       </Link>

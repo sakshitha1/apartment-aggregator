@@ -3,9 +3,110 @@ import cors from 'cors'
 import Database from 'better-sqlite3'
 import { fileURLToPath } from 'url'
 import path from 'path'
+import fs from 'fs'
+import { parse } from 'csv-parse/sync'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const DB_PATH = path.resolve(__dirname, '..', 'apartments-listings.db')
+const CSV_PATH = path.resolve(__dirname, '..', 'property_listings.csv')
+
+function ensureDatabaseExists() {
+  if (fs.existsSync(DB_PATH)) return
+
+  if (!fs.existsSync(CSV_PATH)) {
+    console.error(`❌ Missing database file: ${DB_PATH}`)
+    console.error(
+      `❌ Also couldn't find CSV to build it: ${CSV_PATH}\n` +
+        `Put 'apartments-listings.db' in the repo root, or place 'property_listings.csv' there so it can be imported.`,
+    )
+    process.exit(1)
+  }
+
+  console.log(`🛠️  Building SQLite DB from ${CSV_PATH} ...`)
+
+  const buildDb = new Database(DB_PATH)
+
+  // property_listings: 23 fields (field1..field23), stored as TEXT (cast in queries as needed)
+  const cols23 = Array.from({ length: 23 }, (_, i) => `field${i + 1} TEXT`).join(', ')
+  buildDb.exec(`CREATE TABLE IF NOT EXISTS property_listings (${cols23});`)
+
+  // Other tables used by the API. We create them empty so endpoints still work.
+  const cols7 = Array.from({ length: 7 }, (_, i) => `field${i + 1} TEXT`).join(', ')
+  const cols8 = Array.from({ length: 8 }, (_, i) => `field${i + 1} TEXT`).join(', ')
+  const cols4 = Array.from({ length: 4 }, (_, i) => `field${i + 1} TEXT`).join(', ')
+  buildDb.exec(`CREATE TABLE IF NOT EXISTS listing_price_history (${cols7});`)
+  buildDb.exec(`CREATE TABLE IF NOT EXISTS listing_schools_info (${cols8});`)
+  buildDb.exec(`CREATE TABLE IF NOT EXISTS listing_tax_info (${cols7});`)
+  buildDb.exec(`CREATE TABLE IF NOT EXISTS listing_mortgage_info (${cols4});`)
+
+  // Import CSV rows into property_listings
+  const csvText = fs.readFileSync(CSV_PATH, 'utf8')
+  const records = parse(csvText, {
+    relax_column_count: true,
+    skip_empty_lines: true,
+  })
+
+  const placeholders23 = Array.from({ length: 23 }, () => '?').join(', ')
+  const insertListing = buildDb.prepare(
+    `INSERT INTO property_listings VALUES (${placeholders23})`,
+  )
+
+  const padTo = (arr, n) => {
+    const out = arr.slice(0, n)
+    while (out.length < n) out.push('')
+    return out
+  }
+
+  const insertMany = buildDb.transaction((rows) => {
+    for (const r of rows) {
+      const vals = padTo(r.map((v) => (v == null ? '' : String(v))), 23)
+      insertListing.run(vals)
+    }
+  })
+
+  insertMany(records)
+
+  // Insert header rows into other tables so field1 != 'zpid' filter remains consistent.
+  buildDb.prepare(`INSERT INTO listing_price_history VALUES (?, ?, ?, ?, ?, ?, ?)`).run(
+    'zpid',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+  )
+  buildDb.prepare(`INSERT INTO listing_schools_info VALUES (?, ?, ?, ?, ?, ?, ?, ?)`).run(
+    'zpid',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+  )
+  buildDb.prepare(`INSERT INTO listing_tax_info VALUES (?, ?, ?, ?, ?, ?, ?)`).run(
+    'zpid',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+  )
+  buildDb.prepare(`INSERT INTO listing_mortgage_info VALUES (?, ?, ?, ?)`).run(
+    'zpid',
+    '',
+    '',
+    '',
+  )
+
+  buildDb.close()
+  console.log(`✅ Created ${DB_PATH}`)
+}
+
+ensureDatabaseExists()
 
 const db = new Database(DB_PATH, { readonly: true })
 
@@ -174,7 +275,8 @@ app.get('/api/listings', (req, res) => {
     const params = [HEADER_ZPID]
 
     // Price filter
-    if (maxPrice && maxPrice !== 'any') {
+    // Frontend uses 5,000,000 as “No limit”; treat it as unset
+    if (maxPrice && maxPrice !== 'any' && Number(maxPrice) < 5000000) {
       conditions.push(`CAST(field2 AS REAL) <= ?`)
       params.push(Number(maxPrice))
     }
@@ -246,9 +348,9 @@ app.get('/api/listings', (req, res) => {
 
     const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''
 
-    // Count
+    // Count (dedup by listing id)
     const countRow = db
-      .prepare(`SELECT COUNT(*) AS total FROM property_listings ${where}`)
+      .prepare(`SELECT COUNT(DISTINCT field1) AS total FROM property_listings ${where}`)
       .get(...params)
 
     // Sort
@@ -260,9 +362,21 @@ app.get('/api/listings', (req, res) => {
     const limit = Math.min(Number(rawLimit) || 200, 500)
     const offset = Number(rawOffset) || 0
 
+    // Deduplicate by listing id (field1) while still returning full rows.
+    // We pick the smallest rowid for each id.
     const rows = db
       .prepare(
-        `SELECT * FROM property_listings ${where} ${orderBy} LIMIT ? OFFSET ?`,
+        `WITH dedup AS (
+          SELECT MIN(rowid) AS rowid
+          FROM property_listings
+          ${where}
+          GROUP BY field1
+        )
+        SELECT p.*
+        FROM property_listings p
+        JOIN dedup d ON d.rowid = p.rowid
+        ${orderBy}
+        LIMIT ? OFFSET ?`,
       )
       .all(...params, limit, offset)
 

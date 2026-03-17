@@ -54,8 +54,9 @@ export function SearchResultsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters])
 
-  const { data: dataset, loading, error } = useListings({
-    maxPrice: filters.maxPrice,
+  const { data: dataset, total, loading, error } = useListings({
+    // Treat 5M (UI “No limit”) as no server-side cap
+    maxPrice: filters.maxPrice >= 5000000 ? undefined : filters.maxPrice,
     minPrice: Number(filters.minPrice) > 0 ? filters.minPrice : undefined,
     rooms: filters.rooms,
     bathrooms: filters.bathrooms,
@@ -69,23 +70,29 @@ export function SearchResultsPage() {
     sort: filters.sort,
     q: filters.q,
   })
+  const isInitialLoading = loading && (!dataset || dataset.length === 0)
 
   const filtered = useMemo(() => {
     // The backend already applies all filters, but we do a light client-side
     // pass for instant feedback while the next request is in-flight.
     const minRooms = filters.rooms === 'any' ? 0 : Number(filters.rooms)
     const minBath = filters.bathrooms === 'any' ? 0 : Number(filters.bathrooms)
+    const maxPrice = filters.maxPrice >= 5000000 ? Number.POSITIVE_INFINITY : filters.maxPrice
     const base = (dataset || []).filter((l) => {
       if (filters.category !== 'any' && l.category !== filters.category) return false
-      if (typeof l.price === 'number' && l.price > filters.maxPrice) return false
+      if (typeof l.price === 'number' && l.price > maxPrice) return false
       if (Number(filters.minPrice) > 0 && typeof l.price === 'number' && l.price < Number(filters.minPrice)) return false
       if (minRooms && (l.rooms || l.bedrooms || 0) < minRooms) return false
       if (minBath && (l.bathrooms || 0) < minBath) return false
       if (filters.state && filters.state !== 'any' && l.state !== filters.state) return false
       return true
     })
+    // Safety dedupe (some sources can contain repeated ids)
+    const deduped = Array.from(
+      new Map(base.filter((l) => l?.id != null).map((l) => [String(l.id), l])).values(),
+    )
 
-    const sorted = [...base]
+    const sorted = [...deduped]
     if (filters.sort === 'price_asc') sorted.sort((a, b) => a.price - b.price)
     if (filters.sort === 'price_desc') sorted.sort((a, b) => b.price - a.price)
     if (filters.sort === 'new') sorted.sort((a, b) => (b.isNew ? 1 : 0) - (a.isNew ? 1 : 0))
@@ -101,20 +108,10 @@ export function SearchResultsPage() {
 
   useEffect(() => {
     // Reset results on list change
-    let alive = true
     setCursor(0)
     setItems([])
-
-    const t = setTimeout(() => {
-      if (!alive) return
-      setItems(filtered.slice(0, PAGE_SIZE))
-      setCursor(PAGE_SIZE)
-    }, 600)
-
-    return () => {
-      alive = false
-      clearTimeout(t)
-    }
+    setItems(filtered.slice(0, PAGE_SIZE))
+    setCursor(PAGE_SIZE)
   }, [filtered])
 
   useEffect(() => {
@@ -152,7 +149,11 @@ export function SearchResultsPage() {
         <div>
           <h1 className="text-lg font-semibold tracking-tight">Search results</h1>
           <div className="text-sm text-zinc-600">
-            {loading ? 'Loading…' : `${filtered.length} properties for sale`}
+            {isInitialLoading
+              ? 'Loading…'
+              : total > 0
+                ? `Showing ${filtered.length} of ${total} properties`
+                : `${filtered.length} properties`}
           </div>
           {!loading && error ? (
             <div className="mt-1 text-xs text-red-500">
@@ -178,25 +179,21 @@ export function SearchResultsPage() {
         ) : null}
       </div>
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[320px_1fr] lg:items-start">
-        <div className="lg:sticky lg:top-20">
-          {loading ? (
-            <FilterSkeleton />
-          ) : (
-            <FilterBar filters={filters} onChange={setFilters} />
-          )}
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[320px_1fr] lg:items-start lg:h-[calc(100vh-4rem)] lg:overflow-hidden">
+        <div className="lg:h-[calc(100vh-4rem)] lg:overflow-y-auto">
+          {isInitialLoading ? <FilterSkeleton /> : <FilterBar filters={filters} onChange={setFilters} />}
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-4 lg:h-[calc(100vh-4rem)] lg:overflow-y-auto lg:pr-1">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {loading
+            {isInitialLoading
               ? Array.from({ length: 9 }).map((_, i) => (
                   <ListingCardSkeleton key={i} />
                 ))
               : items.map((l) => <ListingCard key={l.id} listing={l} />)}
           </div>
 
-          {!loading ? (
+          {!isInitialLoading ? (
             <>
               <div ref={sentinelRef} className="h-10" />
               {loadingMore ? (

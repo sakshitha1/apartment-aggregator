@@ -3,6 +3,7 @@ import { fetchListings } from '../api/listings.js'
 
 export function useListings(filters) {
   const [data, setData] = useState([])
+  const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
@@ -17,13 +18,14 @@ export function useListings(filters) {
     const start = Date.now()
 
     fetchListings(filters || {})
-      .then((items) => {
+      .then((res) => {
         if (!alive) return
         const elapsed = Date.now() - start
         const delay = Math.max(0, 400 - elapsed)
         setTimeout(() => {
           if (!alive) return
-          setData(items || [])
+          setData(res?.items || [])
+          setTotal(typeof res?.total === 'number' ? res.total : (res?.items || []).length)
           setLoading(false)
         }, delay)
       })
@@ -35,6 +37,7 @@ export function useListings(filters) {
         setTimeout(() => {
           if (!alive) return
           setData([])
+          setTotal(0)
           setLoading(false)
         }, delay)
       })
@@ -44,6 +47,6 @@ export function useListings(filters) {
     }
   }, [stableKey])
 
-  return { data, loading, error }
+  return { data, total, loading, error }
 }
 

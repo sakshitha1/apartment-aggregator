@@ -12,9 +12,18 @@ export async function fetchListings(params = {}) {
   }
   const suffix = qs.toString() ? `?${qs.toString()}` : ''
   const data = await apiFetch(`/api/listings${suffix}`)
-  if (Array.isArray(data)) return data
-  if (data?.items && Array.isArray(data.items)) return data.items
-  return []
+  if (Array.isArray(data)) {
+    return { items: data, total: data.length }
+  }
+  if (data?.items && Array.isArray(data.items)) {
+    return {
+      items: data.items,
+      total: typeof data.total === 'number' ? data.total : data.items.length,
+      limit: data.limit,
+      offset: data.offset,
+    }
+  }
+  return { items: [], total: 0 }
 }
 
 export async function fetchListingById(id) {

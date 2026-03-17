@@ -126,7 +126,7 @@ export function HomePage() {
                 </select>
               </HeroField>
 
-              <Button size="lg" className="w-full md:w-auto">
+              <Button type="submit" size="lg" className="w-full md:w-auto">
                 Search
               </Button>
             </div>

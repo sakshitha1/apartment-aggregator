@@ -18,7 +18,7 @@ function formatDollar(v) {
   return `$${v}`
 }
 
-const DEFAULT_FILTERS = {
+export const DEFAULT_FILTERS = {
   q: '',
   category: 'any',
   homeStatus: 'any',
@@ -31,6 +31,8 @@ const DEFAULT_FILTERS = {
   maxArea: '',
   yearBuiltMin: '',
   yearBuiltMax: '',
+  minValueScore: '',
+  county: '',
   sort: 'recommended',
 }
 
@@ -46,7 +48,6 @@ export function FilterBar({ filters, onChange, className }) {
     fetchStatuses().then(setStatuses).catch(() => {})
   }, [])
 
-  // Count how many "more" filters are active
   const moreActiveCount = [
     filters.homeStatus && filters.homeStatus !== 'any',
     filters.state && filters.state !== 'any',
@@ -56,6 +57,8 @@ export function FilterBar({ filters, onChange, className }) {
     filters.yearBuiltMin && filters.yearBuiltMin !== '',
     filters.yearBuiltMax && filters.yearBuiltMax !== '',
     filters.minPrice && Number(filters.minPrice) > 0,
+    filters.minValueScore && filters.minValueScore !== '',
+    filters.county && filters.county !== '',
   ].filter(Boolean).length
 
   const hasActiveFilters = Object.keys(DEFAULT_FILTERS).some((k) => {
@@ -168,6 +171,22 @@ export function FilterBar({ filters, onChange, className }) {
         </div>
       </div>
 
+      {/* ── Sort ── */}
+      <div className="space-y-2">
+        <SectionTitle>Sort By</SectionTitle>
+        <select
+          value={filters.sort || 'recommended'}
+          onChange={(e) => update({ sort: e.target.value })}
+          className={selectCls}
+        >
+          <option value="recommended">Most Popular</option>
+          <option value="value_score">Best Value Score</option>
+          <option value="new">Newest Listings</option>
+          <option value="price_asc">Price: Low to High</option>
+          <option value="price_desc">Price: High to Low</option>
+        </select>
+      </div>
+
       {/* ── More Filters (collapsible) ── */}
       <button
         type="button"
@@ -251,6 +270,18 @@ export function FilterBar({ filters, onChange, className }) {
             </select>
           </div>
 
+          {/* County */}
+          <div className="space-y-2">
+            <SectionTitle>County</SectionTitle>
+            <input
+              type="text"
+              value={filters.county || ''}
+              onChange={(e) => update({ county: e.target.value })}
+              placeholder="e.g. Los Angeles, Cook…"
+              className={inputCls}
+            />
+          </div>
+
           {/* Living Area */}
           <div className="space-y-2">
             <SectionTitle>Living Area (sqft)</SectionTitle>
@@ -302,6 +333,36 @@ export function FilterBar({ filters, onChange, className }) {
               />
             </div>
           </div>
+
+          {/* Minimum Value Score */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <SectionTitle>Min. Value Score</SectionTitle>
+              {filters.minValueScore ? (
+                <span className="text-xs font-bold text-rose-600">{filters.minValueScore}+</span>
+              ) : (
+                <span className="text-xs text-zinc-400">Any</span>
+              )}
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              step={5}
+              value={filters.minValueScore || 0}
+              onChange={(e) => update({ minValueScore: e.target.value === '0' ? '' : e.target.value })}
+              className="w-full accent-rose-500"
+            />
+            <div className="flex items-center justify-between text-[10px] text-zinc-400">
+              <span>Any</span>
+              <span>50 — Good</span>
+              <span>75 — Great</span>
+              <span>90+</span>
+            </div>
+            <p className="text-[10px] text-zinc-400">
+              Value Score reflects price vs. city median, size, freshness &amp; popularity (0–100).
+            </p>
+          </div>
         </div>
       )}
 
@@ -318,4 +379,3 @@ export function FilterBar({ filters, onChange, className }) {
     </aside>
   )
 }
-

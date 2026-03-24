@@ -24,27 +24,53 @@ export function AuthProvider({ children }) {
     const openRegister = () => setAuthModal('register')
     const closeAuthModal = () => setAuthModal(null)
 
-    const login = ({ email }) => {
-      const next = { id: crypto.randomUUID(), email, name: email.split('@')[0] }
-      setUser(next)
-      localStorage.setItem(LS_KEY, JSON.stringify(next))
-      closeAuthModal()
+    const login = async ({ nickname, password }) => {
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nickname, password }),
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error || 'Login failed')
+        const next = data.user
+        setUser(next)
+        localStorage.setItem(LS_KEY, JSON.stringify(next))
+        localStorage.setItem('rea.auth.token', data.token)
+        closeAuthModal()
+      } catch (err) {
+        throw err // Will be caught by modal
+      }
     }
 
-    const register = ({ name, email }) => {
-      const next = {
-        id: crypto.randomUUID(),
-        email,
-        name: name?.trim() ? name.trim() : email.split('@')[0],
+    const register = async ({ nickname, password }) => {
+      try {
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nickname, password }),
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error || 'Registration failed')
+        const next = data.user
+        setUser(next)
+        localStorage.setItem(LS_KEY, JSON.stringify(next))
+        localStorage.setItem('rea.auth.token', data.token)
+        closeAuthModal()
+      } catch (err) {
+        throw err // caught by modal
       }
-      setUser(next)
-      localStorage.setItem(LS_KEY, JSON.stringify(next))
-      closeAuthModal()
     }
 
     const logout = () => {
       setUser(null)
       localStorage.removeItem(LS_KEY)
+      localStorage.removeItem('rea.auth.token')
+      localStorage.removeItem('rea.favorites')
+      localStorage.removeItem('rea.compare')
+      localStorage.removeItem('rea.preferences')
+      localStorage.removeItem('rea.alerts.seen')
+      window.location.href = '/'
     }
 
     return {

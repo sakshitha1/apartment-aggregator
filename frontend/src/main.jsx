@@ -5,13 +5,19 @@ import './index.css'
 import App from './App.jsx'
 import { AuthProvider } from './context/AuthContext.jsx'
 import { FavoritesProvider } from './context/FavoritesContext.jsx'
+import { CompareProvider } from './context/CompareContext.jsx'
+import { PreferencesProvider } from './context/PreferencesContext.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
       <AuthProvider>
         <FavoritesProvider>
-          <App />
+          <CompareProvider>
+            <PreferencesProvider>
+              <App />
+            </PreferencesProvider>
+          </CompareProvider>
         </FavoritesProvider>
       </AuthProvider>
     </BrowserRouter>

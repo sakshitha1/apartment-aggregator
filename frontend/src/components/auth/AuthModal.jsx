@@ -34,8 +34,7 @@ export function AuthModal() {
     useAuth()
   const mode = authModal // 'login' | 'register' | null
 
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
+  const [nickname, setNickname] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -53,7 +52,7 @@ export function AuthModal() {
     setPassword('')
     setConfirmPassword('')
     setShowPassword(false)
-    // Keep email/name so switching feels smooth.
+    // Keep nickname so switching feels smooth.
   }, [mode])
 
   const passwordError = useMemo(() => {
@@ -73,40 +72,33 @@ export function AuthModal() {
     <Modal open={!!mode} title={title} onClose={closeAuthModal}>
       <form
         className="space-y-4"
-        onSubmit={(e) => {
-          e.preventDefault()
-          setFormError('')
+      onSubmit={async (e) => {
+        e.preventDefault()
+        setFormError('')
 
+        try {
           if (mode === 'register') {
             if (password.length < 8) return setFormError('Password is too short.')
             if (password !== confirmPassword)
               return setFormError('Please make sure both passwords match.')
-            register({ name, email, password })
+            await register({ nickname, password })
           } else {
-            login({ email, password })
+            await login({ nickname, password })
           }
-        }}
-      >
-        {mode === 'register' ? (
-          <Input
-            label="Full name"
-            autoComplete="name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="e.g., Aida T."
-            required
-          />
-        ) : null}
-
-        <Input
-          label="Email"
-          type="email"
-          autoComplete="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="you@example.com"
-          required
-        />
+        } catch (err) {
+          setFormError(err.message)
+        }
+      }}
+    >
+      <Input
+        label="Nickname"
+        type="text"
+        autoComplete="username"
+        value={nickname}
+        onChange={(e) => setNickname(e.target.value)}
+        placeholder="e.g., CoolUser123"
+        required
+      />
         <Input
           label="Password"
           type={showPassword ? 'text' : 'password'}

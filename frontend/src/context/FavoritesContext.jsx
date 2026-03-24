@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
+import { useAuth } from './AuthContext.jsx'
 
 const FavoritesContext = createContext(null)
 const LS_KEY = 'rea.favorites'
@@ -14,16 +15,45 @@ function loadFavorites() {
 
 export function FavoritesProvider({ children }) {
   const [ids, setIds] = useState(loadFavorites)
+  const { user } = useAuth()
 
   useEffect(() => {
     localStorage.setItem(LS_KEY, JSON.stringify(ids))
   }, [ids])
 
-  const toggle = useCallback((id) => {
-    setIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
-    )
-  }, [])
+  useEffect(() => {
+    if (user) {
+      const token = localStorage.getItem('rea.auth.token')
+      fetch('/api/user/saved', { headers: { Authorization: `Bearer ${token}` } })
+        .then((r) => r.json())
+        .then((data) => {
+          if (Array.isArray(data)) {
+            const savedIds = data.filter((d) => d.type === 'saved').map((d) => d.zpid)
+            setIds(savedIds)
+          }
+        })
+        .catch(() => {})
+    } else {
+      setIds(loadFavorites())
+    }
+  }, [user])
+
+  const toggle = useCallback(
+    (id) => {
+      const willBeFav = !ids.includes(id)
+      setIds((prev) => (willBeFav ? [...prev, id] : prev.filter((x) => x !== id)))
+      
+      const token = localStorage.getItem('rea.auth.token')
+      if (token) {
+        fetch('/api/user/saved', {
+          method: willBeFav ? 'POST' : 'DELETE',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ zpid: id, type: 'saved' }),
+        }).catch(() => {})
+      }
+    },
+    [ids]
+  )
 
   const isFavorite = useCallback((id) => ids.includes(id), [ids])
 

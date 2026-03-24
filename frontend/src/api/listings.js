@@ -1,9 +1,5 @@
 import { apiFetch } from './client.js'
 
-// Expected backend shapes (flexible):
-// - GET /listings -> { items: Listing[] } OR Listing[]
-// - GET /listings/:id -> Listing
-
 export async function fetchListings(params = {}) {
   const qs = new URLSearchParams()
   for (const [k, v] of Object.entries(params)) {
@@ -30,6 +26,12 @@ export async function fetchListingById(id) {
   return await apiFetch(`/api/listings/${encodeURIComponent(id)}`)
 }
 
+export async function fetchListingsBatch(ids) {
+  if (!ids || !ids.length) return []
+  const qs = new URLSearchParams({ ids: ids.join(',') })
+  return await apiFetch(`/api/listings/batch?${qs.toString()}`)
+}
+
 export async function fetchCategories() {
   return await apiFetch('/api/categories')
 }
@@ -46,3 +48,7 @@ export async function fetchStats() {
   return await apiFetch('/api/stats')
 }
 
+export async function fetchMarketStats(city) {
+  const qs = city ? `?city=${encodeURIComponent(city)}` : ''
+  return await apiFetch(`/api/market-stats${qs}`)
+}

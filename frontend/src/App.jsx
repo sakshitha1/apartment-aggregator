@@ -1,11 +1,14 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { Navbar } from './components/Navbar.jsx'
 import { AuthModal } from './components/auth/AuthModal.jsx'
+import { CompareBar } from './components/CompareBar.jsx'
 import { HomePage } from './pages/HomePage.jsx'
 import { SearchResultsPage } from './pages/SearchResultsPage.jsx'
 import { ListingDetailsPage } from './pages/ListingDetailsPage.jsx'
 import { AddListingWizardPage } from './pages/AddListingWizardPage.jsx'
 import { FavoritesPage } from './pages/FavoritesPage.jsx'
+import { ComparePage } from './pages/ComparePage.jsx'
+import { AlertsPage } from './pages/AlertsPage.jsx'
 import { Footer } from './components/Footer.jsx'
 import { RequireAuth } from './components/RequireAuth.jsx'
 
@@ -21,6 +24,8 @@ export default function App() {
           <Route path="/search" element={<SearchResultsPage />} />
           <Route path="/listing/:id" element={<ListingDetailsPage />} />
           <Route path="/favorites" element={<FavoritesPage />} />
+          <Route path="/compare" element={<ComparePage />} />
+          <Route path="/alerts" element={<AlertsPage />} />
           <Route
             path="/host/new"
             element={
@@ -34,6 +39,7 @@ export default function App() {
       </main>
 
       <Footer />
+      <CompareBar />
     </div>
   )
 }

@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Button } from './Button.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useFavorites } from '../context/FavoritesContext.jsx'
+import { NotificationBell } from './NotificationBell.jsx'
 
 function Icon({ children }) {
   return (
@@ -19,17 +20,15 @@ export function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false)
 
   const initials = useMemo(() => {
-    if (!user?.name) return 'U'
-    return user.name.slice(0, 1).toUpperCase()
+    if (!user?.nickname) return 'U'
+    return user.nickname.slice(0, 1).toUpperCase()
   }, [user])
 
   return (
     <header className="sticky top-0 z-50 border-b border-zinc-200 bg-white/80 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4 sm:px-6 lg:px-8">
         <Link to="/" className="flex items-center gap-2">
-          <div className="grid h-9 w-9 place-items-center rounded-xl bg-rose-500 text-white">
-            <span className="text-sm font-semibold">R</span>
-          </div>
+          <img src="/vite.svg" alt="RealEstate" className="h-8 w-8 drop-shadow-sm transition hover:scale-105" />
           <span className="hidden text-sm font-semibold tracking-tight sm:inline">
             RealEstate
           </span>
@@ -77,6 +76,10 @@ export function Navbar() {
           )}
         </Link>
 
+        <div className="hidden md:block">
+          <NotificationBell />
+        </div>
+
         <div className="relative">
           <button
             type="button"
@@ -108,8 +111,7 @@ export function Navbar() {
               {user ? (
                 <>
                   <div className="px-4 py-3">
-                    <div className="text-sm font-semibold">{user.name}</div>
-                    <div className="text-xs text-zinc-500">{user.email}</div>
+                    <div className="text-sm font-semibold">@{user.nickname}</div>
                   </div>
                   <div className="h-px bg-zinc-100" />
                   <button
@@ -134,6 +136,17 @@ export function Navbar() {
                     }}
                   >
                     Favorites{favCount > 0 ? ` (${favCount})` : ''}
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="w-full px-4 py-3 text-left text-sm hover:bg-zinc-50"
+                    onClick={() => {
+                      setMenuOpen(false)
+                      navigate('/compare')
+                    }}
+                  >
+                    Compare
                   </button>
                   <button
                     type="button"
@@ -208,4 +221,3 @@ export function Navbar() {
     </header>
   )
 }
-

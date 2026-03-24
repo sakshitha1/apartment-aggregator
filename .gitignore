@@ -32,3 +32,14 @@ __pycache__/
 apartments-listings.db
 *.db-journal
 *.db-wal
+
+# Replit-specific files
+replit.md
+.replit
+.local/
+.agents/
+
+# Research / ML training artifacts (not used by the running app)
+*.ipynb
+catboost_info/
+models/
